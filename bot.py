@@ -8,8 +8,8 @@ from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 import tempfile
 
 # ========== НАСТРОЙКИ ==========
-TOKEN = '8747950882:AAFg3A-gAc3PwdORU5Mo_SPV8BLs2rjpoR0'
-MISTRAL_KEY = "7Ynm0FvFKUE7DzPPPbds2tm59jWkcuwV"  
+TOKEN = os.environ.get('BOT_TOKEN')
+MISTRAL_KEY = os.environ.get('MISTRAL_KEY')
 # ================================
 
 # Инициализация клиента Mistral
