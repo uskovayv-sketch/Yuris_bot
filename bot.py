@@ -12,6 +12,16 @@ TOKEN = os.environ.get('BOT_TOKEN')
 MISTRAL_KEY = os.environ.get('MISTRAL_KEY')
 # ================================
 
+if not TOKEN or not MISTRAL_KEY:
+    print("❌ Ошибка: Не найдены переменные окружения!")
+    print("💡 В Render добавь переменные:")
+    print("   - BOT_TOKEN")
+    print("   - MISTRAL_KEY")
+    exit(1)
+
+print(f"✅ Токен бота: {TOKEN[:10]}...")
+print(f"✅ Ключ Mistral: {MISTRAL_KEY[:5]}...")
+
 # Инициализация клиента Mistral
 client = Mistral(api_key=MISTRAL_KEY)
 
