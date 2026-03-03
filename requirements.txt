@@ -1,4 +1,4 @@
-aiogram==3.4.1
-mistralai==1.2.0
-PyPDF2==3.0.1
-aiohttp==3.9.5
+aiogram
+mistralai
+PyPDF2
+aiohttp
