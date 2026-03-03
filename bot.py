@@ -22,9 +22,8 @@ if not TOKEN or not MISTRAL_KEY:
 print(f"✅ Токен бота: {TOKEN[:10]}...")
 print(f"✅ Ключ Mistral: {MISTRAL_KEY[:5]}...")
 
-# Инициализация клиента Mistral
+# Инициализация
 client = Mistral(api_key=MISTRAL_KEY)
-
 dp = Dispatcher()
 
 # --- Клавиатура ---
@@ -38,14 +37,17 @@ def get_main_keyboard():
     )
     return keyboard
 
-# --- Функция для Mistral ---
+# --- Функция для Mistral (С ТВОИМ ПРОМТОМ) ---
 async def ask_mistral(prompt):
     try:
         print(f"🔄 Отправляю запрос в Mistral...")
         response = client.chat.complete(
             model="mistral-small-latest",
             messages=[
-                {"role": "system", "content": "Ты — Юрис, юридический помощник. Твоя задача - весело и легко объяснять сложные юридические тексты и формулировки, делая их понятнее для молодых ребят и подростков"},
+                {"role": "system", "content": "Ты — Юрис, юридический помощник. Ты — весёлый юридический помощник «ЮрисдИИкция»: объясняй сложные термины и документы просто, бодро /n"
+                "и с лёгким юмором, в разговорном стиле без канцелярита и сложных терминов (если используешь термин — сразу поясняй).  Используй лёгкие сравнения, каламбуры и бытовые /n"
+                "аналогии без сарказма; длина ответа — не более 80 слов; не давай рискованных юридических советов («сделай так» заменяй на «по закону нужно…»), не углубляйся в детали /n"
+                "сверх сути, избегай мрачных прогнозов и споров с пользователем; цель — сделать право понятным и нестрашным."},
                 {"role": "user", "content": prompt}
             ]
         )
@@ -54,7 +56,7 @@ async def ask_mistral(prompt):
         return answer
     except Exception as e:
         print(f"❌ Ошибка Mistral: {e}")
-        return f"🤖 Извини, временные проблемы с ИИ. Ошибка: {str(e)}"
+        return f"🤖 Ошибка ИИ: {e}"
 
 # --- Чтение PDF ---
 def extract_text_from_pdf(file_path):
@@ -64,59 +66,38 @@ def extract_text_from_pdf(file_path):
         for page in reader.pages:
             if page.extract_text():
                 text += page.extract_text() + "\n"
-        return text[:3000]  # Ограничиваем длину
+        return text[:3000]
 
 # ========== ХЕНДЛЕРЫ ==========
 @dp.message(Command('start'))
 async def start_command(message: Message):
     await message.answer(
-        "👋 **Привет! Я Юрис — твой помощник в понимании юридических бумаг!**\n\n"
-        "📄 **Что я умею:**\n"
-        "• Анализировать юридические документы (PDF)\n"
-        "• Объяснять сложные термины простым языком\n"
-        "• Отвечать на вопросы про законы\n\n"
-        "👇 **Просто отправь мне файл или напиши вопрос!**",
+        "👋 **Привет! Я Юрис — юридический помощник!**\n\n"
+        "📄 Отправь мне PDF с договором, и я объясню его простыми словами!",
         reply_markup=get_main_keyboard()
     )
-    print(f"🚀 Пользователь @{message.from_user.username} запустил бота")
+    print(f"🚀 Пользователь {message.from_user.username} запустил бота")
 
-@dp.message(lambda message: message.text == "📄 Загрузить документ")
-async def upload_document_prompt(message: Message):
-    await message.answer("📎 Отправь мне PDF-файл с юридическим документом, и я проанализирую его!")
-
-@dp.message(lambda message: message.text == "❓ Помощь")
+@dp.message(Command('help'))
 async def help_command(message: Message):
     await message.answer(
         "📚 **Как пользоваться:**\n\n"
-        "1️⃣ **Отправь PDF** — я прочитаю документ\n"
-        "2️⃣ **Подожди немного** — я анализирую текст\n"
-        "3️⃣ **Получишь объяснение** — простыми словами!\n\n"
-        "Или просто задай вопрос про любой закон!",
+        "1. Отправь PDF-файл\n"
+        "2. Я прочитаю текст\n"
+        "3. Получишь простое объяснение!",
         reply_markup=get_main_keyboard()
     )
 
-@dp.message(lambda message: message.text == "ℹ️ О боте")
-async def about_command(message: Message):
-    await message.answer(
-        "🤖 **О боте Юрис**\n\n"
-        "• **Модель:** Mistral AI\n"
-        "• **Версия:** 1.0\n"
-        "• **Фичи:** Анализ PDF, объяснение терминов\n\n"
-        "🚀 **Проект для Фестиваля ИИ**",
-        reply_markup=get_main_keyboard()
-    )
-
-# --- Обработчик документов ---
 @dp.message(lambda message: message.document is not None)
 async def handle_document(message: Message):
     if not message.document.file_name.endswith('.pdf'):
-        await message.answer("⚠️ Пока я понимаю только PDF-файлы. Отправь PDF!")
+        await message.answer("⚠️ Пока я понимаю только PDF-файлы!")
         return
-
-    msg = await message.answer("📥 Получаю документ...")
-    print(f"📎 Получен файл от @{message.from_user.username}: {message.document.file_name}")
     
-    # Скачиваем файл во временную папку
+    msg = await message.answer("📥 Скачиваю файл...")
+    print(f"📎 Получен файл: {message.document.file_name}")
+    
+    # Скачиваем во временную папку
     file_info = await message.bot.get_file(message.document.file_id)
     file_path = file_info.file_path
     
@@ -125,61 +106,36 @@ async def handle_document(message: Message):
         tmp_path = tmp_file.name
     
     await msg.edit_text("📖 Читаю документ...")
-    
-    # Извлекаем текст
-    document_text = extract_text_from_pdf(tmp_path)
+    text = extract_text_from_pdf(tmp_path)
     os.unlink(tmp_path)  # Удаляем временный файл
     
-    if not document_text.strip():
-        await msg.edit_text("❌ Не удалось прочитать текст из PDF. Возможно, это сканированный документ или он защищён.")
+    if not text.strip():
+        await msg.edit_text("❌ Не удалось прочитать текст. Возможно, файл защищён или это сканированный документ.")
         return
     
-    # Показываем кусочек текста (для отладки)
-    print(f"📄 Текст документа (первые 200 символов): {document_text[:200]}...")
-    
-    await msg.edit_text("🤔 Анализирую документ с помощью ИИ... (это может занять до минуты)")
-    
-    # Отправляем в Mistral
-    ai_response = await ask_mistral(
-        f"Проанализируй этот юридический документ и объясни его простыми словами. "
-        f"Выдели самую суть, что это за документ, какие обязательства накладывает, "
-        f"есть ли риски. Вот текст:\n\n{document_text}"
-    )
+    await msg.edit_text("🤔 Анализирую через Mistral AI... (это может занять до минуты)")
+    answer = await ask_mistral(f"Объясни простыми словами этот юридический текст. Выдели самую суть:\n\n{text}")
     
     await message.answer(
-        f"📄 **Анализ документа:**\n\n{ai_response}\n\n"
-        f"---\n"
-        f"⚠️ *Ответ подготовлен ИИ. Для принятия важных решений проконсультируйтесь с юристом.*"
+        f"🧠 **Простое объяснение:**\n\n{answer}\n\n---\n"
+        f"⚠️ *Ответ подготовлен ИИ, для важных решений проконсультируйтесь с юристом*"
     )
-    print(f"✅ Ответ отправлен @{message.from_user.username}")
+    print(f"✅ Ответ отправлен {message.from_user.username}")
 
-# --- Обработчик обычного текста ---
 @dp.message()
 async def text_handler(message: Message):
     if message.text and not message.text.startswith('/'):
-        user_text = message.text
-        print(f"📨 Вопрос от @{message.from_user.username}: {user_text[:50]}...")
-        
-        await message.answer("🤔 Думаю над ответом...")
-        
-        # Отправляем в Mistral
-        ai_response = await ask_mistral(
-            f"Ответь на вопрос по юридической теме простым понятным языком. "
-            f"Вопрос: {user_text}"
-        )
-        
-        await message.answer(ai_response)
-        print(f"✅ Ответ отправлен @{message.from_user.username}")
+        print(f"📨 Вопрос от {message.from_user.username}: {message.text[:50]}...")
+        await message.answer("🤔 Думаю...")
+        answer = await ask_mistral(message.text)
+        await message.answer(answer)
+        print(f"✅ Ответ отправлен")
 
 # ========== ЗАПУСК ==========
 async def main():
-    print("\n" + "="*60)
-    print("🚀 ЮРИС-БОТ С MISTRAL AI ЗАПУСКАЕТСЯ!")
-    print("="*60)
-    print(f"🤖 Ключ Mistral: {MISTRAL_KEY[:5]}...{MISTRAL_KEY[-5:]}")
-    print("📊 Лог событий:")
-    print("-"*40)
-    
+    print("\n" + "="*50)
+    print("🚀 Юрис-бот ЗАПУСКАЕТСЯ!")
+    print("="*50)
     bot = Bot(token=TOKEN)
     await dp.start_polling(bot)
 
